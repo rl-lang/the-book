@@ -38,7 +38,3 @@ Already comfortable with the basics? Jump straight to the [[Language Concepts|Ho
 | 18 | [Tutorial-std-path](18-std-path.md) | Building and inspecting filesystem paths |
 | 19 | [Tutorial-std-fs](19-std-fs.md) | Copying, moving, and managing files and directories |
 | 20 | [Tutorial-std-random](20-std-random.md) | Random ints, floats, dice, choice, and shuffle |
-
----
-
-Finished? Head back to [Home](../README.md) or browse the full [[Standard Library|Home#standard-library]] reference.
