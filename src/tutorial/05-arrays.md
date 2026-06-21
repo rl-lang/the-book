@@ -22,7 +22,3 @@ all elements must share the same type
 dec arr[int] nums = [1, 2, 3]
 // dec arr[int] bad = [1, "two"] // error: type mismatch
 ```
-
----
-
-[<- Previous: Types](Tutorial-Types) · [Tutorial](Tutorial) · [Next: Operators ->](Tutorial-Operators)

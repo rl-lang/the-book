@@ -26,7 +26,3 @@ get utils // loads utils.rl
 ```rl
 get add from math::utils // imports add from math/utils.rl
 ```
-
----
-
-[<- Previous: Null](Tutorial-Null) · [Tutorial](Tutorial) · [Next: Entry Points ->](Tutorial-Entry-Points)

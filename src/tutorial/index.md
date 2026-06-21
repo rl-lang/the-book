@@ -31,13 +31,13 @@ Already comfortable with the basics? Jump straight to the [[Language Concepts|Ho
 
 | Step | Page | What you'll learn |
 |------|------|--------------------|
-| 14 | [[Tutorial-std-math]] | Trig, rounding, primes, and [std-math-consts](../stdlib/math-consts.md) |
-| 15 | [[Tutorial-std-array]] | Manipulation, aggregates, and higher-order functions |
-| 16 | [[Tutorial-std-str]] | Searching, transforming, and formatting strings |
-| 17 | [[Tutorial-std-io]] | Console and file input/output |
-| 18 | [[Tutorial-std-path]] | Building and inspecting filesystem paths |
-| 19 | [[Tutorial-std-fs]] | Copying, moving, and managing files and directories |
-| 20 | [[Tutorial-std-random]] | Random ints, floats, dice, choice, and shuffle |
+| 14 | [Tutorial-std-math](14-std-math.md) | Trig, rounding, primes, and constants |
+| 15 | [Tutorial-std-array](15-std-array.md) | Manipulation, aggregates, and higher-order functions |
+| 16 | [Tutorial-std-str](16-std-str.md) | Searching, transforming, and formatting strings |
+| 17 | [Tutorial-std-io](17-std-io.md) | Console and file input/output |
+| 18 | [Tutorial-std-path](18-std-path.md) | Building and inspecting filesystem paths |
+| 19 | [Tutorial-std-fs](19-std-fs.md) | Copying, moving, and managing files and directories |
+| 20 | [Tutorial-std-random](20-std-random.md) | Random ints, floats, dice, choice, and shuffle |
 
 ---
 

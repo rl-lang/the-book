@@ -33,7 +33,3 @@ while (i < 5) {
     println(i) // 1 2 4 5
 }
 ```
-
----
-
-[<- Previous: Operators](Tutorial-Operators) · [Tutorial](Tutorial) · [Next: For Loops ->](Tutorial-For-Loops)

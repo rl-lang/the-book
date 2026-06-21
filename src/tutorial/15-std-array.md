@@ -31,8 +31,3 @@ println(arr_filter([1, 2, 3, 4], fn(int x) -> bool { return x > 2 })) // [3, 4]
 println(arr_map([1, 2, 3], fn(int x) -> int { return x * 2 }))        // [2, 4, 6]
 println(arr_reduce([1, 2, 3, 4], fn(int acc, int x) -> int { return acc + x }, 0)) // 10
 ```
-
-
----
-
-[<- Previous: std::math](Tutorial-Std-Math) · [Tutorial](Tutorial) · [Next: std::str ->](Tutorial-Std-Str)

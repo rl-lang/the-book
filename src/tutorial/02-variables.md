@@ -19,7 +19,3 @@ count -= 2 // 3
 count *= 3 // 9
 count /= 3 // 3
 ```
-
----
-
-[<- Previous: Comments](Tutorial-Comments) · [Tutorial](Tutorial) · [Next: Constants ->](Tutorial-Constants)

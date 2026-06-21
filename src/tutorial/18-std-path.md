@@ -10,7 +10,3 @@ println(path_extension("main.rl"))    // "rl"
 println(path_stem("main.rl"))         // "main"
 println(path_filename("/usr/bin/rl")) // "rl"
 ```
-
----
-
-[<- Previous: std::io](Tutorial-Std-Io) · [Tutorial](Tutorial) · [Next: std::fs ->](Tutorial-Std-Fs)

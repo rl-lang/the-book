@@ -10,7 +10,3 @@ fn do_nothing() {
     // implicitly returns null
 }
 ```
-
----
-
-[<- Previous: Lambdas](Tutorial-Lambdas) · [Tutorial](Tutorial) · [Next: Imports ->](Tutorial-Imports)

@@ -21,7 +21,3 @@ get arr_push from std::array
 dec arr[int] nums = [1, 2, 3]
 println(nums.arr_push(4)) // [1, 2, 3, 4]
 ```
-
----
-
-[<- Previous: Arrays](Tutorial-Arrays) · [Tutorial](Tutorial) · [Next: Control Flow ->](Tutorial-Control-Flow)

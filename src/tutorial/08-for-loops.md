@@ -30,8 +30,3 @@ for n in evens {
 }
 println(even_sum) // 12
 ```
-
-
----
-
-[<- Previous: Control Flow](Tutorial-Control-Flow) · [Tutorial](Tutorial) · [Next: Functions ->](Tutorial-Functions)

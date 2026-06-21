@@ -24,7 +24,3 @@ fn start() {
     std::io::println("hello")
 }
 ```
-
----
-
-[<- Previous: Imports](Tutorial-Imports) · [Tutorial](Tutorial) · [Next: std::math ->](Tutorial-Std-Math)

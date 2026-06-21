@@ -29,7 +29,3 @@ println(to_bin(10)) // "1010"
 println(to_hex(255)) // "ff"
 println(to_oct(8)) // "10"
 ```
-
----
-
-[<- Previous: Constants](Tutorial-Constants) · [Tutorial](Tutorial) · [Next: Arrays ->](Tutorial-Arrays)

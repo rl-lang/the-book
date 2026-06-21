@@ -18,7 +18,3 @@ fn double(int x) -> int {
 dec fn f = double
 println(f(5)) // 10
 ```
-
----
-
-[<- Previous: For Loops](Tutorial-For-Loops) · [Tutorial](Tutorial) · [Next: Lambdas ->](Tutorial-Lambdas)

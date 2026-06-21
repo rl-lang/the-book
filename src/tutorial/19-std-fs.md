@@ -20,7 +20,3 @@ copy_file("a.txt", "b.txt") // 1024 (bytes copied)
 move_file("/tmp/a.txt", "/tmp/b.txt")
 rmdir_all("./build")
 ```
-
----
-
-[<- Previous: std::path](Tutorial-Std-Path) · [Tutorial](Tutorial) · [Next: std::random ->](Tutorial-Std-Random)

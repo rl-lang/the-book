@@ -14,7 +14,3 @@ constant arrays use `CONST arr[<type>]`
 CONST arr[int] PRIMES = [2, 3, 5, 7, 11]
 println(PRIMES[0]) // 2
 ```
-
----
-
-[<- Previous: Variables](Tutorial-Variables) · [Tutorial](Tutorial) · [Next: Types ->](Tutorial-Types)

@@ -33,8 +33,3 @@ println(TAU()) // ~6.283
 println(PHI()) // ~1.618
 println(E())   // ~2.718
 ```
-
-
----
-
-[<- Previous: Entry Points](Tutorial-Entry-Points) · [Tutorial](Tutorial) · [Next: std::array ->](Tutorial-Std-Array)

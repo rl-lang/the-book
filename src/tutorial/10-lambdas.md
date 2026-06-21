@@ -18,10 +18,3 @@ dec fn triple = fn(int x) -> int {
 }
 println(triple(4)) // 12
 ```
-
-
-
-
----
-
-[<- Previous: Functions](Tutorial-Functions) · [Tutorial](Tutorial) · [Next: Null ->](Tutorial-Null)

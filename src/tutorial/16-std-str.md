@@ -28,8 +28,3 @@ get format from std::str
 
 println(format("{} is {}", "age", 30)) // age is 30
 ```
-
-
----
-
-[<- Previous: std::array](Tutorial-Std-Array) · [Tutorial](Tutorial) · [Next: std::io ->](Tutorial-Std-Io)

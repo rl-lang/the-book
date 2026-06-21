@@ -18,7 +18,3 @@ write_file("index.html", "<p>hello</p>")
 append_file("info.txt", "name: Mohamed")
 dec string data = read_file("backup_info.txt")
 ```
-
----
-
-[<- Previous: std::str](Tutorial-Std-Str) · [Tutorial](Tutorial) · [Next: std::path ->](Tutorial-Std-Path)
