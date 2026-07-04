@@ -1,0 +1,85 @@
+name: Build and Deploy rl Docs Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo (generator scripts)
+        uses: actions/checkout@v4
+        with:
+          path: site-generator
+
+      - name: Checkout rl-lang/rl-lang (source to build)
+        uses: actions/checkout@v4
+        with:
+          repository: rl-lang/rl-lang
+          path: rl-lang
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rl-lang
+
+      - name: Build rl
+        working-directory: rl-lang
+        run: cargo build --release
+
+      - name: Generate docs JSON
+        working-directory: rl-lang
+        run: ./target/release/rl docs --json --output --out-file "${GITHUB_WORKSPACE}/docs.json"
+
+      - name: Verify docs JSON is non-empty
+        run: |
+          if [ ! -s "${GITHUB_WORKSPACE}/docs.json" ]; then
+            echo "docs.json is missing or empty" >&2
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generate HTML site
+        run: |
+          python3 site-generator/gen_docs_site.py \
+            "${GITHUB_WORKSPACE}/docs.json" \
+            "${GITHUB_WORKSPACE}/site_out"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site_out
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
