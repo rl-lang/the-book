@@ -20,7 +20,7 @@ Read it at: https://rl-lang.github.io/the-book
 - **`rl-highlight.js`** - a small dependency-free tokenizer that highlights
   `<pre class="rl-code">` blocks client-side, based on the real keyword list
   from `rl-lang`'s lexer.
-- **`.github/workflows/build-docs-site.yml`** - on every push to `main`,
+- **`.github/workflows/build-docs-site.yml`** - on every push to `master`,
   clones `rl-lang/rl-lang`, builds it with `cargo build --release`, runs
   `rl docs --json --output --out-file docs.json` to get a fresh doc dump,
   runs it through `gen_docs_site.py`, and deploys the result to GitHub Pages.
