@@ -43,15 +43,45 @@ def page(title, sidebar_html, body):
         "<html>\n"
         "<head>\n"
         '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         "<title>" + esc(title) + "</title>\n"
         '<link rel="stylesheet" href="style.css">\n'
         '<script src="rl-highlight.js" defer></script>\n'
         "</head>\n"
         "<body>\n"
+        '<header class="topbar">\n'
+        '<button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">\n'
+        "<span></span><span></span><span></span>\n"
+        "</button>\n"
+        '<a class="topbar-brand" href="index.html">rl docs</a>\n'
+        "</header>\n"
         '<div class="layout">\n'
+        '<div class="sidebar-backdrop"></div>\n'
         '<nav class="sidebar">\n' + sidebar_html + "</nav>\n"
         "<main>\n" + body + "</main>\n"
         "</div>\n"
+        "<script>\n"
+        "(function(){\n"
+        '  var btn = document.querySelector(".menu-toggle");\n'
+        '  var sidebar = document.querySelector(".sidebar");\n'
+        '  var backdrop = document.querySelector(".sidebar-backdrop");\n'
+        "  function close(){\n"
+        '    sidebar.classList.remove("open");\n'
+        '    backdrop.classList.remove("open");\n'
+        '    btn.setAttribute("aria-expanded", "false");\n'
+        "  }\n"
+        "  function toggle(){\n"
+        '    var open = sidebar.classList.toggle("open");\n'
+        '    backdrop.classList.toggle("open", open);\n'
+        '    btn.setAttribute("aria-expanded", open ? "true" : "false");\n'
+        "  }\n"
+        '  btn.addEventListener("click", toggle);\n'
+        '  backdrop.addEventListener("click", close);\n'
+        '  sidebar.addEventListener("click", function(e){\n'
+        '    if (e.target.tagName === "A") close();\n'
+        "  });\n"
+        "})();\n"
+        "</script>\n"
         "</body>\n"
         "</html>\n"
     )
