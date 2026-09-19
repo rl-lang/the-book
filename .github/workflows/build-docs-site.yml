@@ -35,9 +35,6 @@ jobs:
           repository: rl-lang/rl-lang
           path: rl-lang
 
-      - name: Install Alsa dev headers
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
-
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
 
@@ -46,13 +43,13 @@ jobs:
         with:
           workspaces: rl-lang
 
-      - name: Build rl
+      - name: Build rldocs
         working-directory: rl-lang
-        run: cargo build --release
+        run: cargo build --release --bin rldocs
 
       - name: Generate docs JSON
         working-directory: rl-lang
-        run: ./target/release/rl docs --json --output --out-file "${GITHUB_WORKSPACE}/docs.json"
+        run: ./target/release/rldocs --json -o --out-file "${GITHUB_WORKSPACE}/docs.json"
 
       - name: Verify docs JSON is non-empty
         run: |
