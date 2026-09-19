@@ -38,7 +38,7 @@ def func_name(sig):
     return sig.split("(")[0]
 
 
-def render_fn_html(func):
+def render_fn_html(func, see_also_map=None):
     out = "<h3><code>" + esc(func.get("signature")) + "</code></h3>\n"
     since = func.get("since")
     updated = func.get("updated")
@@ -63,9 +63,14 @@ def render_fn_html(func):
             out += "<p><em>output:</em></p>\n<pre>" + esc(expected) + "</pre>\n"
     see_also = func.get("see_also") or []
     if see_also:
-        out += "<p><strong>See also:</strong> " + ", ".join(
-            "<code>" + esc(n) + "</code>" for n in see_also
-        ) + "</p>\n"
+        links = []
+        for n in see_also:
+            target_id = see_also_map.get(n) if see_also_map else None
+            if target_id:
+                links.append('<a href="#" onclick="showContent(\'' + target_id + '\'); return false;"><code>' + esc(n) + "</code></a>")
+            else:
+                links.append("<code>" + esc(n) + "</code>")
+        out += "<p><strong>See also:</strong> " + ", ".join(links) + "</p>\n"
     return out
 
 
@@ -99,6 +104,15 @@ def build_site(data, out_path):
     # Build all content sections as HTML strings, keyed by id
     contents = {}
 
+    # Build see_also lookup: bare function name -> content id
+    see_also_map = {}
+    for mod in stdlib:
+        mod_name = mod.get("name", "")
+        mod_id = "std_" + slugify(mod_name)
+        for func in mod.get("functions") or []:
+            bare = func_name(func.get("signature", ""))
+            see_also_map[bare] = mod_id + "_" + slugify(bare)
+
     # --- Std Reference ---
     for mod in stdlib:
         mod_name = mod.get("name", "")
@@ -124,7 +138,7 @@ def build_site(data, out_path):
                 body += '<li><a href="#" onclick="showContent(\'' + func_id + '\'); return false;"><code>' + esc(func_bare) + "</code></a></li>\n"
                 func_body = "<h1>std::" + esc(mod_name) + "::" + esc(func_bare) + "</h1>\n"
                 func_body += '<p class="meta"><em>module: <code>std::' + esc(mod_name) + "</code></em></p>\n"
-                func_body += render_fn_html(func)
+                func_body += render_fn_html(func, see_also_map)
                 contents[func_id] = func_body
             body += "</ul>\n"
         contents[mod_id] = body
