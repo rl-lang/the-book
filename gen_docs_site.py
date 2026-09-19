@@ -115,15 +115,18 @@ def build_site(data, out_path):
         if meta:
             body += '<p class="meta"><em>' + " | ".join(meta) + "</em></p>\n"
         body += "<p>" + esc(mod.get("description")) + "</p>\n"
-        body += "<h2>Functions</h2>\n"
-        for func in mod.get("functions") or []:
-            body += render_fn_html(func)
-            func_bare = func_name(func.get("signature", ""))
-            func_id = mod_id + "_" + slugify(func_bare)
-            func_body = "<h1>std::" + esc(mod_name) + "::" + esc(func_bare) + "</h1>\n"
-            func_body += '<p class="meta"><em>module: <code>std::' + esc(mod_name) + "</code></em></p>\n"
-            func_body += render_fn_html(func)
-            contents[func_id] = func_body
+        funcs = mod.get("functions") or []
+        if funcs:
+            body += "<h2>Functions</h2>\n<ul>\n"
+            for func in funcs:
+                func_bare = func_name(func.get("signature", ""))
+                func_id = mod_id + "_" + slugify(func_bare)
+                body += '<li><a href="#" onclick="showContent(\'' + func_id + '\'); return false;"><code>' + esc(func_bare) + "</code></a></li>\n"
+                func_body = "<h1>std::" + esc(mod_name) + "::" + esc(func_bare) + "</h1>\n"
+                func_body += '<p class="meta"><em>module: <code>std::' + esc(mod_name) + "</code></em></p>\n"
+                func_body += render_fn_html(func)
+                contents[func_id] = func_body
+            body += "</ul>\n"
         contents[mod_id] = body
 
     # --- Concepts ---
