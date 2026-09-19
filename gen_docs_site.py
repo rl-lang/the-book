@@ -19,6 +19,21 @@ def esc(text):
     return html.escape(str(text))
 
 
+def md_inline(text):
+    if text is None:
+        return ""
+    text = str(text)
+    parts = text.split("`")
+    out = []
+    for i, part in enumerate(parts):
+        if i > 0:
+            out.append("<code>" if i % 2 == 1 else "</code>")
+        out.append(html.escape(part))
+    if len(parts) % 2 == 0:
+        out.append("</code>")
+    return "".join(out)
+
+
 def slugify(text):
     out = []
     for ch in str(text).lower():
@@ -49,9 +64,9 @@ def render_fn_html(func, see_also_map=None):
         out += "</em></p>\n"
     deprecated = func.get("deprecated")
     if deprecated:
-        out += "<p><strong>Deprecated:</strong> " + esc(deprecated) + "</p>\n"
-    out += "<p>" + esc(func.get("description")) + "</p>\n"
-    out += "<p><strong>Returns:</strong> " + esc(func.get("returns")) + "</p>\n"
+        out += "<p><strong>Deprecated:</strong> " + md_inline(deprecated) + "</p>\n"
+    out += "<p>" + md_inline(func.get("description")) + "</p>\n"
+    out += "<p><strong>Returns:</strong> " + md_inline(func.get("returns")) + "</p>\n"
     errors = func.get("errors")
     if errors:
         out += "<p><strong>Errors:</strong> " + esc(errors) + "</p>\n"
@@ -83,9 +98,9 @@ def render_desc_html(desc):
     kind_labels = {"Syntax": "Syntax", "Pitfall": "Pitfall", "Note": "Note"}
     label = kind_labels.get(kind)
     if label:
-        out += "<p><strong>" + esc(label) + ":</strong> " + esc(desc.get("description")) + "</p>\n"
+        out += "<p><strong>" + esc(label) + ":</strong> " + md_inline(desc.get("description")) + "</p>\n"
     else:
-        out += "<p>" + esc(desc.get("description")) + "</p>\n"
+        out += "<p>" + md_inline(desc.get("description")) + "</p>\n"
     examples = desc.get("examples") or []
     expected_outputs = desc.get("expected_output") or []
     for i, example in enumerate(examples):
@@ -128,7 +143,7 @@ def build_site(data, out_path):
             meta.append("unstable")
         if meta:
             body += '<p class="meta"><em>' + " | ".join(meta) + "</em></p>\n"
-        body += "<p>" + esc(mod.get("description")) + "</p>\n"
+        body += "<p>" + md_inline(mod.get("description")) + "</p>\n"
         funcs = mod.get("functions") or []
         if funcs:
             body += "<h2>Functions</h2>\n<ul>\n"
@@ -156,14 +171,14 @@ def build_site(data, out_path):
         body += '<p class="meta"><em>' + " | ".join(meta) + "</em></p>\n"
         summary = entry.get("summary")
         if summary:
-            body += "<p>" + esc(summary) + "</p>\n"
+            body += "<p>" + md_inline(summary) + "</p>\n"
         for desc in entry.get("descriptions") or []:
             body += render_desc_html(desc)
         pitfalls = entry.get("pitfalls") or []
         if pitfalls:
             body += "<p><strong>Pitfalls:</strong></p>\n<ul>\n"
             for p in pitfalls:
-                body += "<li>" + esc(p) + "</li>\n"
+                body += "<li>" + md_inline(p) + "</li>\n"
             body += "</ul>\n"
         contents[cid] = body
 
@@ -177,7 +192,7 @@ def build_site(data, out_path):
             body += '<p class="meta"><em>since ' + esc(since) + "</em></p>\n"
         summary = entry.get("summary")
         if summary:
-            body += "<p>" + esc(summary) + "</p>\n"
+            body += "<p>" + md_inline(summary) + "</p>\n"
         for desc in entry.get("descriptions") or []:
             body += render_desc_html(desc)
         contents[tid] = body
