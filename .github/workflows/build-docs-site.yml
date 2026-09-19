@@ -65,9 +65,10 @@ jobs:
 
       - name: Generate HTML site
         run: |
+          mkdir -p "${GITHUB_WORKSPACE}/site_out"
           python3 site-generator/gen_docs_site.py \
             "${GITHUB_WORKSPACE}/docs.json" \
-            "${GITHUB_WORKSPACE}/site_out"
+            "${GITHUB_WORKSPACE}/site_out/index.html"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

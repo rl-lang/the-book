@@ -2,32 +2,14 @@
 gen_docs_site.py
 
 Reads a docs.json file (shape produced by `rl docs --json`) and writes a
-multi-page HTML site with a collapsible tree sidebar matching the TUI layout:
-
-    Std Reference
-      array
-        arr_all, arr_any, ...
-      math
-        (overview)
-        math::consts
-    Concepts
-      Syntax
-        comments, ...
-      Types
-        ...
-    Tutorial
-      Beginner
-        1. your first program, ...
-      Advanced
-        ...
+single-page HTML app with interactive sidebar, search, and no page reloads.
 
 Usage:
-    python3 gen_docs_site.py that_json.json output_dir
+    python3 gen_docs_site.py that_json.json output.html
 """
 
 import html
 import json
-import os
 import sys
 
 
@@ -50,85 +32,18 @@ def slugify(text):
     return slug or "entry"
 
 
-def page(title, sidebar_html, body):
-    return (
-        "<!DOCTYPE html>\n"
-        "<html>\n"
-        "<head>\n"
-        '<meta charset="utf-8">\n'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        "<title>" + esc(title) + "</title>\n"
-        '<link rel="stylesheet" href="style.css">\n'
-        '<script src="rl-highlight.js" defer></script>\n'
-        "</head>\n"
-        "<body>\n"
-        '<header class="topbar">\n'
-        '<button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">\n'
-        "<span></span><span></span><span></span>\n"
-        "</button>\n"
-        '<a class="topbar-brand" href="index.html">rl docs</a>\n'
-        "</header>\n"
-        '<div class="layout">\n'
-        '<div class="sidebar-backdrop"></div>\n'
-        '<nav class="sidebar">\n' + sidebar_html + "</nav>\n"
-        "<main>\n" + body + "</main>\n"
-        "</div>\n"
-        "<script>\n"
-        "(function(){\n"
-        '  var btn = document.querySelector(".menu-toggle");\n'
-        '  var sidebar = document.querySelector(".sidebar");\n'
-        '  var backdrop = document.querySelector(".sidebar-backdrop");\n'
-        "  function close(){\n"
-        '    sidebar.classList.remove("open");\n'
-        '    backdrop.classList.remove("open");\n'
-        '    btn.setAttribute("aria-expanded", "false");\n'
-        "  }\n"
-        "  function toggle(){\n"
-        '    var open = sidebar.classList.toggle("open");\n'
-        '    backdrop.classList.toggle("open", open);\n'
-        '    btn.setAttribute("aria-expanded", open ? "true" : "false");\n'
-        "  }\n"
-        '  btn.addEventListener("click", toggle);\n'
-        '  backdrop.addEventListener("click", close);\n'
-        '  sidebar.addEventListener("click", function(e){\n'
-        '    if (e.target.tagName === "A") close();\n'
-        "  });\n"
-        "})();\n"
-        "</script>\n"
-        "</body>\n"
-        "</html>\n"
-    )
-
-
-def render_example_block(example, expected_output):
-    out = '<pre class="rl-code">' + esc(example) + "</pre>\n"
-    if expected_output:
-        out += "<p><em>output:</em></p>\n"
-        out += "<pre>" + esc(expected_output) + "</pre>\n"
-    return out
-
-
-def render_related(label, names, link_map=None, prefix=""):
-    if not names:
+def func_name(sig):
+    if not sig:
         return ""
-    items = []
-    for n in names:
-        display = esc(prefix + n)
-        if link_map and n in link_map:
-            items.append(
-                '<a href="' + esc(link_map[n]) + '"><code>' + display + "</code></a>"
-            )
-        else:
-            items.append("<code>" + display + "</code>")
-    return "<p><strong>" + esc(label) + ":</strong> " + ", ".join(items) + "</p>\n"
+    return sig.split("(")[0]
 
 
-def render_fn_entry(func, fn_link_map):
+def render_fn_html(func):
     out = "<h3><code>" + esc(func.get("signature")) + "</code></h3>\n"
     since = func.get("since")
     updated = func.get("updated")
     if since:
-        out += "<p><em>since " + esc(since)
+        out += '<p class="meta"><em>since ' + esc(since)
         if updated:
             out += " | updated " + esc(updated)
         out += "</em></p>\n"
@@ -142,12 +57,19 @@ def render_fn_entry(func, fn_link_map):
         out += "<p><strong>Errors:</strong> " + esc(errors) + "</p>\n"
     example = func.get("example")
     if example:
-        out += render_example_block(example, func.get("expected_output"))
-    out += render_related("See also", func.get("see_also") or [], fn_link_map)
+        out += '<pre class="rl-code">' + esc(example) + "</pre>\n"
+        expected = func.get("expected_output")
+        if expected:
+            out += "<p><em>output:</em></p>\n<pre>" + esc(expected) + "</pre>\n"
+    see_also = func.get("see_also") or []
+    if see_also:
+        out += "<p><strong>See also:</strong> " + ", ".join(
+            "<code>" + esc(n) + "</code>" for n in see_also
+        ) + "</p>\n"
     return out
 
 
-def render_description_entry(desc):
+def render_desc_html(desc):
     out = ""
     title = desc.get("title")
     if title:
@@ -156,318 +78,566 @@ def render_description_entry(desc):
     kind_labels = {"Syntax": "Syntax", "Pitfall": "Pitfall", "Note": "Note"}
     label = kind_labels.get(kind)
     if label:
-        out += (
-            "<p><strong>"
-            + esc(label)
-            + ":</strong> "
-            + esc(desc.get("description"))
-            + "</p>\n"
-        )
+        out += "<p><strong>" + esc(label) + ":</strong> " + esc(desc.get("description")) + "</p>\n"
     else:
         out += "<p>" + esc(desc.get("description")) + "</p>\n"
     examples = desc.get("examples") or []
     expected_outputs = desc.get("expected_output") or []
     for i, example in enumerate(examples):
         expected = expected_outputs[i] if i < len(expected_outputs) else None
-        out += render_example_block(example, expected)
+        out += '<pre class="rl-code">' + esc(example) + "</pre>\n"
+        if expected:
+            out += "<p><em>output:</em></p>\n<pre>" + esc(expected) + "</pre>\n"
     return out
 
 
-def func_name(sig):
-    """Extract bare name from signature like 'arr_push(arr, val)' -> 'arr_push'."""
-    if not sig:
-        return ""
-    return sig.split("(")[0]
+def build_site(data, out_path):
+    stdlib = data.get("stdlib") or []
+    concepts = data.get("concepts") or []
+    tutorial = data.get("tutorial") or []
 
+    # Build all content sections as HTML strings, keyed by id
+    contents = {}
 
-class SiteBuilder:
-    def __init__(self, data, out_dir):
-        self.stdlib = data.get("stdlib") or []
-        self.concepts = data.get("concepts") or []
-        self.tutorial = data.get("tutorial") or []
-        self.out_dir = out_dir
+    # --- Std Reference ---
+    for mod in stdlib:
+        mod_name = mod.get("name", "")
+        mod_id = "std_" + slugify(mod_name)
+        since = mod.get("since")
+        unstable = mod.get("unstable")
 
-        # stdlib: one page per module (shows all functions)
-        self.std_files = {
-            e.get("name", ""): "std_" + slugify(e.get("name", "")) + ".html"
-            for e in self.stdlib
-        }
-
-        # concepts: one page per entry
-        self.concept_files = {
-            e.get("name", ""): "concept_" + slugify(e.get("name", "")) + ".html"
-            for e in self.concepts
-        }
-
-        # tutorial: one page per entry
-        self.tutorial_files = {
-            e.get("name", ""): "tutorial_" + slugify(e.get("name", "")) + ".html"
-            for e in self.tutorial
-        }
-
-        # flat map: function bare name -> module page (for see_also links)
-        self.fn_files = {}
-        for e in self.stdlib:
-            fname = self.std_files[e.get("name", "")]
-            for func in e.get("functions") or []:
-                bare = func_name(func.get("signature", ""))
-                if bare:
-                    self.fn_files[bare] = fname
-
-    def sidebar_html(self, active_filename=None):
-        def link(filename, label, color=None):
-            cls = ' class="active"' if filename == active_filename else ""
-            style = ""
-            if color:
-                style = ' style="color:' + color + '"'
-            return (
-                '<li><a href="'
-                + esc(filename)
-                + '"'
-                + cls
-                + style
-                + ">"
-                + esc(label)
-                + "</a></li>\n"
-            )
-
-        out = '<a class="home-link" href="index.html">rl docs</a>\n'
-
-        # --- Std Reference ---
-        if self.stdlib:
-            # Group by top-level module (before ::)
-            top_level = {}
-            sub_modules = {}
-            for e in self.stdlib:
-                name = e.get("name", "")
-                if "::" in name:
-                    parent = name.split("::")[0]
-                    sub_modules.setdefault(parent, []).append(e)
-                else:
-                    top_level[name] = e
-
-            out += '<details class="sidebar-group" open><summary class="sidebar-heading" style="color:#6cb0f5">Std Reference</summary>\n<ul>\n'
-            for name in sorted(top_level.keys()):
-                entry = top_level[name]
-                filename = self.std_files[name]
-                funcs = entry.get("functions") or []
-
-                if name in sub_modules:
-                    # Module with children - nested details
-                    out += '<li><details class="sidebar-subgroup"'
-                    if name in (active_filename or ""):
-                        out += " open"
-                    out += '><summary class="sidebar-item' + (' active' if filename == active_filename else '') + '" style="color:#6cb0f5">' + esc(name) + "</summary>\n<ul>\n"
-                    # Overview link
-                    out += link(filename, name + " (overview)", "#6cb0f5")
-                    # Sub-modules
-                    for sub in sub_modules[name]:
-                        sub_name = sub.get("name", "")
-                        sub_short = sub_name.split("::")[-1]
-                        sub_filename = self.std_files[sub_name]
-                        sub_funcs = sub.get("functions") or []
-                        if sub_funcs:
-                            out += '<li><details class="sidebar-subgroup"><summary class="sidebar-item' + (' active' if sub_filename == active_filename else '') + '" style="color:#6cb0f5">' + esc(sub_short) + "</summary>\n<ul>\n"
-                            out += link(sub_filename, sub_short + " (overview)", "#6cb0f5")
-                            for func in sub_funcs:
-                                bare = func_name(func.get("signature", ""))
-                                out += link(filename, bare, "#6cb0f5")
-                            out += "</ul></details></li>\n"
-                        else:
-                            out += link(sub_filename, sub_short, "#6cb0f5")
-                    out += "</ul></details></li>\n"
-                else:
-                    # Module with only functions
-                    out += '<li><details class="sidebar-subgroup"'
-                    if funcs:
-                        out += " open"
-                    out += '><summary class="sidebar-item' + (' active' if filename == active_filename else '') + '" style="color:#6cb0f5">' + esc(name) + "</summary>\n<ul>\n"
-                    for func in funcs:
-                        bare = func_name(func.get("signature", ""))
-                        out += link(filename, bare, "#6cb0f5")
-                    out += "</ul></details></li>\n"
-            out += "</ul></details>\n"
-
-        # --- Concepts (grouped by category) ---
-        if self.concepts:
-            cats = {}
-            for e in self.concepts:
-                cat = e.get("category", "Other")
-                cats.setdefault(cat, []).append(e)
-
-            cat_order = ["Syntax", "Types", "Control Flow", "Functions", "Modules", "Error Handling", "Tooling"]
-            for cat in cat_order:
-                if cat not in cats:
-                    continue
-            # Also include any categories not in the predefined order
-            for cat in cats:
-                if cat not in cat_order:
-                    cat_order.append(cat)
-
-            out += '<details class="sidebar-group" open><summary class="sidebar-heading" style="color:#8cb4e0">Concepts</summary>\n<ul>\n'
-            for cat in cat_order:
-                if cat not in cats:
-                    continue
-                entries = cats[cat]
-                out += '<li><details class="sidebar-subgroup" open><summary class="sidebar-item" style="color:#8cb4e0">' + esc(cat) + "</summary>\n<ul>\n"
-                for e in entries:
-                    name = e.get("name", "")
-                    out += link(self.concept_files[name], name, "#8cb4e0")
-                out += "</ul></details></li>\n"
-            out += "</ul></details>\n"
-
-        # --- Tutorial (Beginner / Advanced) ---
-        if self.tutorial:
-            beginner = []
-            advanced = []
-            for e in self.tutorial:
-                name = e.get("name", "")
-                if name[:1].isdigit():
-                    beginner.append(e)
-                else:
-                    advanced.append(e)
-
-            out += '<details class="sidebar-group" open><summary class="sidebar-heading" style="color:#e0c068">Tutorial</summary>\n<ul>\n'
-            if beginner:
-                out += '<li><details class="sidebar-subgroup" open><summary class="sidebar-item" style="color:#e0c068">Beginner</summary>\n<ul>\n'
-                for e in beginner:
-                    name = e.get("name", "")
-                    out += link(self.tutorial_files[name], name, "#e0c068")
-                out += "</ul></details></li>\n"
-            if advanced:
-                out += '<li><details class="sidebar-subgroup" open><summary class="sidebar-item" style="color:#e0c068">Advanced</summary>\n<ul>\n'
-                for e in advanced:
-                    name = e.get("name", "")
-                    out += link(self.tutorial_files[name], name, "#e0c068")
-                out += "</ul></details></li>\n"
-            out += "</ul></details>\n"
-
-        return out
-
-    def write(self, filename, title, body):
-        content = page(title, self.sidebar_html(active_filename=filename), body)
-        with open(os.path.join(self.out_dir, filename), "w", encoding="utf-8") as f:
-            f.write(content)
-
-    def build_index(self):
-        body = "<h1>rl docs</h1>\n"
-        if self.stdlib or self.concepts or self.tutorial:
-            body += "<p>Pick an item from the sidebar to get started.</p>\n"
-        else:
-            body += "<p>No documentation entries found in this JSON file.</p>\n"
-        self.write("index.html", "rl docs", body)
-
-    def build_std_page(self, entry):
-        name = entry.get("name", "")
-        body = "<h1>std::" + esc(name) + "</h1>\n"
-
-        meta_bits = []
-        since = entry.get("since")
+        body = "<h1>std::" + esc(mod_name) + "</h1>\n"
+        meta = []
         if since:
-            meta_bits.append("since " + esc(since))
-        if entry.get("unstable"):
-            meta_bits.append("unstable")
-        if meta_bits:
-            body += "<p><em>" + " | ".join(meta_bits) + "</em></p>\n"
+            meta.append("since " + esc(since))
+        if unstable:
+            meta.append("unstable")
+        if meta:
+            body += '<p class="meta"><em>' + " | ".join(meta) + "</em></p>\n"
+        body += "<p>" + esc(mod.get("description")) + "</p>\n"
+        body += "<h2>Functions</h2>\n"
+        for func in mod.get("functions") or []:
+            body += render_fn_html(func)
+        contents[mod_id] = body
 
-        body += "<p>" + esc(entry.get("description")) + "</p>\n"
-
-        for func in entry.get("functions") or []:
-            body += render_fn_entry(func, self.fn_files)
-
-        self.write(self.std_files[name], "std::" + name, body)
-
-    def build_concept_or_tutorial_page(self, entry, file_map):
+    # --- Concepts ---
+    for entry in concepts:
         name = entry.get("name", "")
+        cid = "concept_" + slugify(name)
         body = "<h1>" + esc(name) + "</h1>\n"
-
-        meta_bits = [esc(entry.get("category"))]
+        cat = entry.get("category", "")
         since = entry.get("since")
+        meta = [esc(cat)]
         if since:
-            meta_bits.append("since " + esc(since))
-        body += "<p><em>" + " | ".join(meta_bits) + "</em></p>\n"
-
+            meta.append("since " + esc(since))
+        body += '<p class="meta"><em>' + " | ".join(meta) + "</em></p>\n"
         summary = entry.get("summary")
         if summary:
             body += "<p>" + esc(summary) + "</p>\n"
-
-        body += render_related(
-            "Prerequisites", entry.get("prerequisites") or [], self.concept_files
-        )
-
         for desc in entry.get("descriptions") or []:
-            body += render_description_entry(desc)
-
+            body += render_desc_html(desc)
         pitfalls = entry.get("pitfalls") or []
         if pitfalls:
             body += "<p><strong>Pitfalls:</strong></p>\n<ul>\n"
             for p in pitfalls:
                 body += "<li>" + esc(p) + "</li>\n"
             body += "</ul>\n"
+        contents[cid] = body
 
-        body += render_related(
-            "Related concepts", entry.get("related") or [], self.concept_files
-        )
-        body += render_related(
-            "Related stdlib", entry.get("related_stdlib") or [], self.std_files, "std::"
-        )
+    # --- Tutorial ---
+    for entry in tutorial:
+        name = entry.get("name", "")
+        tid = "tutorial_" + slugify(name)
+        body = "<h1>" + esc(name) + "</h1>\n"
+        since = entry.get("since")
+        if since:
+            body += '<p class="meta"><em>since ' + esc(since) + "</em></p>\n"
+        summary = entry.get("summary")
+        if summary:
+            body += "<p>" + esc(summary) + "</p>\n"
+        for desc in entry.get("descriptions") or []:
+            body += render_desc_html(desc)
+        contents[tid] = body
 
-        self.write(file_map[name], name, body)
+    # --- Build sidebar data structure for JS ---
+    sidebar_data = []
 
-    def build(self):
-        os.makedirs(self.out_dir, exist_ok=True)
-        self._copy_asset("style.css")
-        self._copy_asset("rl-highlight.js")
-        self.build_index()
-        for entry in self.stdlib:
-            self.build_std_page(entry)
-        for entry in self.concepts:
-            self.build_concept_or_tutorial_page(entry, self.concept_files)
-        for entry in self.tutorial:
-            self.build_concept_or_tutorial_page(entry, self.tutorial_files)
+    # Std Reference
+    std_node = {"label": "Std Reference", "color": "#6cb0f5", "children": []}
+    # Group by top-level module
+    top_level = {}
+    sub_modules = {}
+    for mod in stdlib:
+        name = mod.get("name", "")
+        if "::" in name:
+            parent = name.split("::")[0]
+            sub_modules.setdefault(parent, []).append(mod)
+        else:
+            top_level[name] = mod
 
-    def _copy_asset(self, filename):
-        src_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
-        dst_path = os.path.join(self.out_dir, filename)
-        if not os.path.exists(src_path):
-            print(
-                "WARNING: could not find " + filename + " next to gen_docs_site.py "
-                "(looked at " + src_path + ").",
-                file=sys.stderr,
-            )
-            return
-        if os.path.abspath(src_path) == os.path.abspath(dst_path):
-            return
-        with open(src_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        with open(dst_path, "w", encoding="utf-8") as f:
-            f.write(content)
-        print("copied " + filename + " -> " + dst_path)
+    for name in sorted(top_level.keys()):
+        mod = top_level[name]
+        mod_id = "std_" + slugify(name)
+        funcs = mod.get("functions") or []
+
+        if name in sub_modules:
+            mod_node = {"label": name, "id": mod_id, "color": "#6cb0f5", "children": [
+                {"label": name + " (overview)", "id": mod_id, "color": "#6cb0f5"}
+            ]}
+            for sub in sub_modules[name]:
+                sub_name = sub.get("name", "")
+                sub_short = sub_name.split("::")[-1]
+                sub_id = "std_" + slugify(sub_name)
+                sub_node = {"label": sub_short, "id": sub_id, "color": "#6cb0f5", "children": [
+                    {"label": sub_short + " (overview)", "id": sub_id, "color": "#6cb0f5"}
+                ]}
+                for func in sub.get("functions") or []:
+                    bare = func_name(func.get("signature", ""))
+                    sub_node["children"].append({"label": bare, "id": sub_id, "color": "#6cb0f5"})
+                mod_node["children"].append(sub_node)
+            std_node["children"].append(mod_node)
+        else:
+            mod_node = {"label": name, "id": mod_id, "color": "#6cb0f5", "children": [
+                {"label": name + " (overview)", "id": mod_id, "color": "#6cb0f5"}
+            ]}
+            for func in funcs:
+                bare = func_name(func.get("signature", ""))
+                mod_node["children"].append({"label": bare, "id": mod_id, "color": "#6cb0f5"})
+            std_node["children"].append(mod_node)
+    sidebar_data.append(std_node)
+
+    # Concepts
+    cats = {}
+    for e in concepts:
+        cat = e.get("category", "Other")
+        cats.setdefault(cat, []).append(e)
+    cat_order = ["Syntax", "Types", "Control Flow", "Functions", "Modules", "Error Handling", "Tooling"]
+    for cat in cats:
+        if cat not in cat_order:
+            cat_order.append(cat)
+
+    concepts_node = {"label": "Concepts", "color": "#8cb4e0", "children": []}
+    for cat in cat_order:
+        if cat not in cats:
+            continue
+        cat_node = {"label": cat, "color": "#8cb4e0", "children": []}
+        for e in cats[cat]:
+            name = e.get("name", "")
+            cat_node["children"].append({"label": name, "id": "concept_" + slugify(name), "color": "#8cb4e0"})
+        concepts_node["children"].append(cat_node)
+    sidebar_data.append(concepts_node)
+
+    # Tutorial
+    beginner = [e for e in tutorial if e.get("name", "")[:1].isdigit()]
+    advanced = [e for e in tutorial if not e.get("name", "")[:1].isdigit()]
+    tutorial_node = {"label": "Tutorial", "color": "#e0c068", "children": []}
+    if beginner:
+        beg_node = {"label": "Beginner", "color": "#e0c068", "children": []}
+        for e in beginner:
+            name = e.get("name", "")
+            beg_node["children"].append({"label": name, "id": "tutorial_" + slugify(name), "color": "#e0c068"})
+        tutorial_node["children"].append(beg_node)
+    if advanced:
+        adv_node = {"label": "Advanced", "color": "#e0c068", "children": []}
+        for e in advanced:
+            name = e.get("name", "")
+            adv_node["children"].append({"label": name, "id": "tutorial_" + slugify(name), "color": "#e0c068"})
+        tutorial_node["children"].append(adv_node)
+    sidebar_data.append(tutorial_node)
+
+    contents_json = json.dumps(contents)
+    sidebar_json = json.dumps(sidebar_data)
+
+    html_out = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rl docs</title>
+<style>
+:root {
+    --bg: #0d1420;
+    --bg-alt: #0a1018;
+    --panel: #0a121f;
+    --border: #1e2d42;
+    --text: #dbe4ee;
+    --text-dim: #8ea0b8;
+    --heading: #f2f6fb;
+    --accent: #6cb0f5;
+    --active-bg: #17395e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* layout */
+.layout { display: flex; height: 100vh; }
+
+/* sidebar */
+.sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    background: var(--bg-alt);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.sidebar-header {
+    padding: 1rem 1rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 {
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+.search-box {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+}
+.search-box:focus { border-color: var(--accent); }
+.search-box::placeholder { color: var(--text-dim); }
+.sidebar-tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+}
+.sidebar-tree::-webkit-scrollbar { width: 6px; }
+.sidebar-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* tree nodes */
+.tree-group { user-select: none; }
+.tree-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.25rem 0.8rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 4px;
+    margin: 0 0.3rem;
+    transition: background 0.1s;
+}
+.tree-label:hover { background: #16253a; }
+.tree-label.active { background: var(--active-bg); color: #fff; }
+.tree-arrow {
+    font-size: 0.6em;
+    color: var(--text-dim);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    width: 1em;
+    text-align: center;
+}
+.tree-group.open > .tree-label .tree-arrow { transform: rotate(90deg); }
+.tree-children {
+    display: none;
+    padding-left: 0.8rem;
+}
+.tree-group.open > .tree-children { display: block; }
+.tree-leaf {
+    padding: 0.2rem 0.8rem 0.2rem 1.4rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    border-radius: 4px;
+    margin: 0 0.3rem;
+    transition: background 0.1s;
+}
+.tree-leaf:hover { background: #16253a; }
+.tree-leaf.active { background: var(--active-bg); color: #fff; }
+
+/* content */
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2.5rem 3rem 4rem;
+    max-width: 900px;
+}
+.content h1 {
+    font-size: 1.8rem;
+    color: var(--heading);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.4rem;
+    margin-bottom: 1rem;
+}
+.content h2 {
+    font-size: 1.3rem;
+    color: var(--heading);
+    margin-top: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+}
+.content h3 {
+    font-size: 1.05rem;
+    color: var(--heading);
+    margin-top: 1.5rem;
+}
+.content h4 {
+    font-size: 0.95rem;
+    color: var(--heading);
+    margin-top: 1.2rem;
+}
+.content p { margin: 0.7rem 0; }
+.content a { color: var(--accent); text-decoration: none; }
+.content a:hover { text-decoration: underline; }
+.content code {
+    background: #16253a;
+    padding: 0.12rem 0.35rem;
+    border-radius: 4px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.88em;
+    color: #cfe0f2;
+}
+.content pre {
+    background: var(--panel);
+    color: #d4dbe6;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+    margin: 0.6rem 0;
+}
+.content pre code { background: none; padding: 0; }
+.content .meta { color: var(--text-dim); }
+.content strong { color: var(--heading); }
+.content ul { padding-left: 1.4rem; }
+.content li { margin: 0.2rem 0; }
+
+/* syntax highlighting */
+.rl-kw { color: #c896e8; }
+.rl-type { color: #5fd0c0; }
+.rl-lit { color: #c896e8; }
+.rl-ident { color: #d4dbe6; }
+.rl-string { color: #a8d18f; }
+.rl-char { color: #a8d18f; }
+.rl-number { color: #e0c068; }
+.rl-comment { color: #7fa06a; font-style: italic; }
+.rl-op { color: #d4dbe6; }
+
+/* mobile */
+.menu-toggle {
+    display: none;
+    position: fixed;
+    top: 0.7rem;
+    left: 0.7rem;
+    z-index: 60;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 1.2rem;
+}
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;
+}
+@media (max-width: 860px) {
+    .menu-toggle { display: block; }
+    .sidebar {
+        position: fixed;
+        top: 0; left: 0; height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+        z-index: 50;
+        box-shadow: 2px 0 16px rgba(0,0,0,0.4);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-backdrop.open { display: block; }
+    .content { padding: 3rem 1.2rem 3rem; max-width: 100%; }
+}
+</style>
+</head>
+<body>
+<button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+<div class="layout">
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h1>rl docs</h1>
+        <input class="search-box" type="text" placeholder="/ search..." id="search" oninput="onSearch(this.value)">
+    </div>
+    <div class="sidebar-tree" id="tree"></div>
+</nav>
+<div class="content" id="content">
+    <h1>rl docs</h1>
+    <p>Pick an item from the sidebar to get started.</p>
+</div>
+</div>
+
+<script>
+var CONTENTS = CONTENTS_PLACEHOLDER;
+var TREE = TREE_PLACEHOLDER;
+var activeId = null;
+
+function buildTree(nodes, container) {
+    nodes.forEach(function(node) {
+        if (node.children && node.children.length > 0) {
+            var group = document.createElement("div");
+            group.className = "tree-group";
+
+            var label = document.createElement("div");
+            label.className = "tree-label";
+            label.style.color = node.color || "#dbe4ee";
+            label.innerHTML = '<span class="tree-arrow">&#9654;</span>' + escapeHtml(node.label);
+            label.onclick = function(e) {
+                e.stopPropagation();
+                group.classList.toggle("open");
+            };
+            group.appendChild(label);
+
+            var children = document.createElement("div");
+            children.className = "tree-children";
+            buildTree(node.children, children);
+            group.appendChild(children);
+            container.appendChild(group);
+        } else {
+            var leaf = document.createElement("div");
+            leaf.className = "tree-leaf";
+            leaf.style.color = node.color || "#dbe4ee";
+            leaf.textContent = node.label;
+            leaf.dataset.id = node.id;
+            leaf.onclick = function(e) {
+                e.stopPropagation();
+                showContent(node.id, leaf);
+            };
+            container.appendChild(leaf);
+        }
+    });
+}
+
+function showContent(id, el) {
+    if (!id || !CONTENTS[id]) return;
+    // update active state
+    document.querySelectorAll(".tree-leaf.active").forEach(function(e) { e.classList.remove("active"); });
+    if (el) el.classList.add("active");
+    activeId = id;
+
+    var content = document.getElementById("content");
+    content.innerHTML = CONTENTS[id];
+    highlightCode(content);
+    content.scrollTop = 0;
+}
+
+function onSearch(query) {
+    var tree = document.getElementById("tree");
+    tree.innerHTML = "";
+    if (!query) {
+        buildTree(TREE, tree);
+        return;
+    }
+    var q = query.toLowerCase();
+    var filtered = filterTree(TREE, q);
+    buildTree(filtered, tree);
+    // auto-expand all groups
+    tree.querySelectorAll(".tree-group").forEach(function(g) { g.classList.add("open"); });
+}
+
+function filterTree(nodes, query) {
+    var result = [];
+    nodes.forEach(function(node) {
+        if (node.children && node.children.length > 0) {
+            var filteredChildren = filterTree(node.children, query);
+            if (filteredChildren.length > 0) {
+                result.push({label: node.label, color: node.color, children: filteredChildren});
+            }
+        } else {
+            if (node.label.toLowerCase().indexOf(query) !== -1) {
+                result.push(node);
+            }
+        }
+    });
+    return result;
+}
+
+function toggleSidebar() {
+    document.querySelector(".sidebar").classList.toggle("open");
+    document.querySelector(".sidebar-backdrop").classList.toggle("open");
+}
+
+function escapeHtml(s) {
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function highlightCode(root) {
+    var blocks = root.querySelectorAll("pre.rl-code");
+    for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i];
+        block.innerHTML = highlight(block.textContent);
+    }
+}
+
+function highlight(source) {
+    var KW = new Set(["fn","for","while","return","continue","break","get","from","in","or","and","null","dec","if","else","as","match","CONST","loop","impl"]);
+    var TY = new Set(["int","float","bool","string","byte","char","arr","error","result","uint"]);
+    var LT = new Set(["true","false","ok","err"]);
+    function match(re, s) { var m = re.exec(s); return m && m[0].length > 0 ? m[0] : null; }
+    var NL = String.fromCharCode(10);
+    var out = [], pos = 0;
+    while (pos < source.length) {
+        var rest = source.slice(pos), m = null, cls = "";
+        if ((m = match(/^\\/\\/[^\\n]*/, rest))) { cls = "rl-comment"; }
+        else if ((m = match(/^"(?:[^"\\\\]|\\\\.)*"/, rest))) { cls = "rl-string"; }
+        else if ((m = match(/^'(?:[^'\\\\]|\\\\.)*'/, rest))) { cls = "rl-char"; }
+        else if ((m = match(/^\\d+\\.\\d+|^\\d+/, rest))) { cls = "rl-number"; }
+        else if ((m = match(/^[A-Za-z_][A-Za-z0-9_]*/, rest))) {
+            cls = KW.has(m) ? "rl-kw" : TY.has(m) ? "rl-type" : LT.has(m) ? "rl-lit" : "rl-ident";
+        }
+        else if ((m = match(/^(==|!=|<=|>=|->|=>|\\+=|-=|\\*=|\\/\\=|::|\\.\\.|[\\+\\-\\*\\/=<>!?&|.,:;(){}\\[\\]])/, rest))) { cls = "rl-op"; }
+        else if ((m = match(/^\\s+/, rest))) { out.push(escH(m)); pos += m.length; continue; }
+        else { out.push(escH(source[pos])); pos++; continue; }
+        out.push('<span class="'+cls+'">'+escH(m)+'</span>');
+        pos += m.length;
+    }
+    return out.join("");
+}
+
+function escH(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// Init
+buildTree(TREE, document.getElementById("tree"));
+</script>
+</body>
+</html>"""
+
+    html_out = html_out.replace("CONTENTS_PLACEHOLDER", contents_json)
+    html_out = html_out.replace("TREE_PLACEHOLDER", sidebar_json)
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(html_out)
+
+    print("Wrote " + out_path + " (" + str(len(contents)) + " sections)")
 
 
 def main():
     if len(sys.argv) < 3:
-        print(
-            "Usage: python3 gen_docs_site.py <input.json> <output_dir>", file=sys.stderr
-        )
+        print("Usage: python3 gen_docs_site.py <input.json> <output.html>", file=sys.stderr)
         sys.exit(1)
 
-    input_path = sys.argv[1]
-    out_dir = sys.argv[2]
-
-    with open(input_path, "r", encoding="utf-8") as f:
+    with open(sys.argv[1], "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    builder = SiteBuilder(data, out_dir)
-    builder.build()
-
-    print(
-        "Wrote site to "
-        + out_dir
-        + "/ ("
-        + str(1 + len(builder.stdlib) + len(builder.concepts) + len(builder.tutorial))
-        + " pages)"
-    )
+    build_site(data, sys.argv[2])
 
 
 if __name__ == "__main__":

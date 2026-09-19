@@ -382,6 +382,15 @@ th {
     margin: 0;
 }
 
+.sidebar-subgroup > ul > li > a {
+    font-weight: 400;
+}
+
+.sidebar-subgroup > summary.active {
+    background: var(--active-bg);
+    color: #ffffff;
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 860px) {
