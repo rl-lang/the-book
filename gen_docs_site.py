@@ -69,7 +69,7 @@ def render_fn_html(func, see_also_map=None):
     out += "<p><strong>Returns:</strong> " + md_inline(func.get("returns")) + "</p>\n"
     errors = func.get("errors")
     if errors:
-        out += "<p><strong>Errors:</strong> " + esc(errors) + "</p>\n"
+        out += "<p><strong>Errors:</strong> " + md_inline(errors) + "</p>\n"
     example = func.get("example")
     if example:
         out += '<pre class="rl-code">' + esc(example) + "</pre>\n"
@@ -93,7 +93,7 @@ def render_desc_html(desc):
     out = ""
     title = desc.get("title")
     if title:
-        out += "<h4>" + esc(title) + "</h4>\n"
+        out += "<h4>" + md_inline(title) + "</h4>\n"
     kind = desc.get("kind")
     kind_labels = {"Syntax": "Syntax", "Pitfall": "Pitfall", "Note": "Note"}
     label = kind_labels.get(kind)
