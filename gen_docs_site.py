@@ -118,6 +118,12 @@ def build_site(data, out_path):
         body += "<h2>Functions</h2>\n"
         for func in mod.get("functions") or []:
             body += render_fn_html(func)
+            func_bare = func_name(func.get("signature", ""))
+            func_id = mod_id + "_" + slugify(func_bare)
+            func_body = "<h1>std::" + esc(mod_name) + "::" + esc(func_bare) + "</h1>\n"
+            func_body += '<p class="meta"><em>module: <code>std::' + esc(mod_name) + "</code></em></p>\n"
+            func_body += render_fn_html(func)
+            contents[func_id] = func_body
         contents[mod_id] = body
 
     # --- Concepts ---
@@ -193,7 +199,8 @@ def build_site(data, out_path):
                 ]}
                 for func in sub.get("functions") or []:
                     bare = func_name(func.get("signature", ""))
-                    sub_node["children"].append({"label": bare, "id": sub_id, "color": "#6cb0f5"})
+                    func_id = sub_id + "_" + slugify(bare)
+                    sub_node["children"].append({"label": bare, "id": func_id, "color": "#6cb0f5"})
                 mod_node["children"].append(sub_node)
             std_node["children"].append(mod_node)
         else:
@@ -202,7 +209,8 @@ def build_site(data, out_path):
             ]}
             for func in funcs:
                 bare = func_name(func.get("signature", ""))
-                mod_node["children"].append({"label": bare, "id": mod_id, "color": "#6cb0f5"})
+                func_id = mod_id + "_" + slugify(bare)
+                mod_node["children"].append({"label": bare, "id": func_id, "color": "#6cb0f5"})
             std_node["children"].append(mod_node)
     sidebar_data.append(std_node)
 
