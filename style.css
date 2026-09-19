@@ -277,7 +277,7 @@ th {
     color: var(--heading);
 }
 
-/* ---------- syntax highlighting ---------- */
+/* ---------- syntax highlighting (matches TUI colors) ---------- */
 
 .rl-kw {
     color: #c896e8;
@@ -286,19 +286,19 @@ th {
     color: #5fd0c0;
 }
 .rl-lit {
-    color: #6cb0f5;
+    color: #c896e8;
 }
 .rl-ident {
     color: #d4dbe6;
 }
 .rl-string {
-    color: #e0a97a;
+    color: #a8d18f;
 }
 .rl-char {
-    color: #e0a97a;
+    color: #a8d18f;
 }
 .rl-number {
-    color: #a8d18f;
+    color: #e0c068;
 }
 .rl-comment {
     color: #7fa06a;
@@ -306,6 +306,80 @@ th {
 }
 .rl-op {
     color: #d4dbe6;
+}
+
+/* ---------- sidebar tree ---------- */
+
+.sidebar-group,
+.sidebar-subgroup {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-group > summary,
+.sidebar-subgroup > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    transition: background 0.12s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    user-select: none;
+}
+
+.sidebar-group > summary::-webkit-details-marker,
+.sidebar-subgroup > summary::-webkit-details-marker {
+    display: none;
+}
+
+.sidebar-group > summary::before,
+.sidebar-subgroup > summary::before {
+    content: "\\25B6";
+    font-size: 0.6em;
+    color: var(--text-dim);
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-group[open] > summary::before,
+.sidebar-subgroup[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.sidebar-group > summary:hover,
+.sidebar-subgroup > summary:hover {
+    background: #16253a;
+}
+
+.sidebar-heading {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 1.5rem 0 0.3rem 0;
+}
+
+.sidebar-heading:first-of-type {
+    margin-top: 1.2rem;
+}
+
+.sidebar-item {
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.sidebar-subgroup > ul {
+    list-style: none;
+    padding-left: 0.8rem;
+    margin: 0;
+}
+
+.sidebar-subgroup > ul > li {
+    margin: 0;
 }
 
 /* ---------- responsive ---------- */
